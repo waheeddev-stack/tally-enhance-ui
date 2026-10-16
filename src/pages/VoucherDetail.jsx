@@ -4,7 +4,7 @@ import { api, inr } from '../lib/api.js';
 import { toast } from '../components/Toast.jsx';
 import { burstConfetti } from '../components/Confetti.jsx';
 import FlagExplainer from '../components/FlagExplainer.jsx';
-import { isAdmin, canApprove } from '../lib/roles.js';
+import { isAdmin, canApprove, canEditVoucher } from '../lib/roles.js';
 
 export default function VoucherDetail({ me, viewAs }) {
   const { id } = useParams();
@@ -36,6 +36,8 @@ export default function VoucherDetail({ me, viewAs }) {
   const mine = v.created_by === me?.email;
   const approver = canApprove(me);
   const overLimit = !isAdmin(me) && me?.approval_limit > 0 && v.total > me.approval_limit;
+  const editableStatus = ['draft', 'pending'].includes(v.status);
+  const canEdit = !viewAs && canEditVoucher(me) && v.status !== 'cancelled' && (editableStatus ? (mine || approver || isAdmin(me)) : (isAdmin(me) || me?.role_preset === 'accountant'));
 
   return (
     <div>
@@ -52,6 +54,7 @@ export default function VoucherDetail({ me, viewAs }) {
       </div>
       {!viewAs && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          {canEdit && <button className="btn" onClick={() => nav(`/vouchers/${v.id}/edit`)}>✎ Edit products</button>}
           {v.status === 'draft' && (mine || isAdmin(me)) && <button className="btn" onClick={() => act('submit')}>Submit for approval</button>}
           {v.status === 'pending' && approver && (
             <>

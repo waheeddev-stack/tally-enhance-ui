@@ -28,6 +28,7 @@ export const canApprove = me => can(me, 'voucher.approve') || can(me, 'approvals
 export const canUpload = me => can(me, 'bill.upload');
 export const canAsk = me => can(me, 'ai.ask');
 export const canCreateVoucher = me => can(me, 'voucher.create');
+export const canEditVoucher = me => can(me, 'voucher.edit');
 export const canVouchers = me => !!me && (me.is_admin || me.role_preset !== 'viewer');
 export const canAlerts = me => !!me && (me.is_admin || me.role_preset !== 'viewer');
 export const canReports = me => can(me, 'report.view');

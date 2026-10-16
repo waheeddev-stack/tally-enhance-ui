@@ -10,6 +10,7 @@ import Upload from './pages/Upload.jsx';
 import Vouchers from './pages/Vouchers.jsx';
 import VoucherNew from './pages/VoucherNew.jsx';
 import VoucherDetail from './pages/VoucherDetail.jsx';
+import VoucherEdit from './pages/VoucherEdit.jsx';
 import Ask from './pages/Ask.jsx';
 import Alerts from './pages/Alerts.jsx';
 import Reports from './pages/Reports.jsx';
@@ -81,6 +82,7 @@ function Shell({ me, setMe }) {
             <Route path="/upload" element={canUpload(me) ? <Upload /> : <Denied />} />
             <Route path="/vouchers" element={canVouchers(me) ? <Vouchers /> : <Denied what="Your role is reports-only." />} />
             <Route path="/vouchers/new" element={canVouchers(me) ? <VoucherNew me={me} /> : <Denied />} />
+            <Route path="/vouchers/:id/edit" element={canVouchers(me) ? <VoucherEdit /> : <Denied />} />
             <Route path="/vouchers/:id" element={<VoucherDetail me={me} viewAs={viewAs} />} />
             <Route path="/approvals" element={(canApprove(me) || me.role_preset === 'data_entry') ? <Approvals me={me} /> : <Denied />} />
             <Route path="/ask" element={canAsk(me) ? <Ask /> : <Denied what="AI is not enabled for your role." />} />

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, inr, aiLabel } from '../lib/api.js';
+import { DEFAULT_GST_RATE, normGstRate } from '../lib/gst.js';
 import { toast } from '../components/Toast.jsx';
 
 const TYPES = [
@@ -12,7 +13,7 @@ const TYPES = [
   { key: 'purchase', label: 'Purchase', fkey: 'F9', alt: '6' },
 ];
 const RATES = [0, 3, 5, 12, 18, 28];
-const blankLine = ledger => ({ ledger: ledger || '', description: '', hsn: '', qty: 1, rate: 0, amount: 0, amountTouched: false, tax_rate: 18 });
+const blankLine = (ledger, taxRate) => ({ ledger: ledger || '', description: '', hsn: '', qty: 1, rate: 0, amount: 0, amountTouched: false, tax_rate: normGstRate(taxRate ?? DEFAULT_GST_RATE) });
 
 export default function VoucherNew({ me }) {
   const [sp] = useSearchParams();
@@ -67,14 +68,14 @@ export default function VoucherNew({ me }) {
   const totals = useMemo(() => {
     let taxable = 0, tax = 0;
     for (const l of lines) {
-      const a = Number(l.amount || 0), r = Number(l.tax_rate || 0);
+      const a = Number(l.amount || 0), r = normGstRate(l.tax_rate);
       taxable += a; tax += a * r / 100;
     }
     return { taxable, tax, grand: taxable + tax };
   }, [lines]);
 
   const taxSplit = l => {
-    const t = Number(l.amount || 0) * Number(l.tax_rate || 0) / 100;
+    const t = Number(l.amount || 0) * normGstRate(l.tax_rate) / 100;
     return inter ? { cgst: 0, sgst: 0, igst: +t.toFixed(2) } : { cgst: +(t / 2).toFixed(2), sgst: +(t / 2).toFixed(2), igst: 0 };
   };
 
@@ -99,9 +100,10 @@ export default function VoucherNew({ me }) {
     setSaving(true);
     try {
       const payloadLines = valid.map(l => {
-        const s = taxSplit(l);
+        const rate = normGstRate(l.tax_rate);
+        const s = taxSplit({ ...l, tax_rate: rate });
         const match = ledgers.find(x => x.name.toLowerCase() === l.ledger.trim().toLowerCase());
-        return { ledger_id: match?.id || null, ledger_name: l.ledger.trim(), description: l.description, hsn: l.hsn, qty: Number(l.qty || 0), rate: Number(l.rate || 0), amount: Number(l.amount || 0), tax_rate: Number(l.tax_rate || 0), ...s, dc: 'Dr' };
+        return { ledger_id: match?.id || null, ledger_name: l.ledger.trim(), description: l.description, hsn: l.hsn, qty: Number(l.qty || 0), rate: Number(l.rate || 0), amount: Number(l.amount || 0), tax_rate: rate, ...s, dc: 'Dr' };
       });
       const partyMatch = ledgers.find(x => x.name.toLowerCase() === party.trim().toLowerCase());
       const r = await api('/vouchers', {
@@ -196,7 +198,7 @@ export default function VoucherNew({ me }) {
                   <td><input className="input mono" type="number" value={l.qty} onChange={e => setLine(i, { qty: e.target.value })} style={{ width: 70 }} /></td>
                   <td><input className="input mono" type="number" value={l.rate} onChange={e => setLine(i, { rate: e.target.value })} style={{ width: 90 }} /></td>
                   <td><input className="input mono" type="number" value={l.amount} onChange={e => setLine(i, { amount: e.target.value, amountTouched: true })} style={{ width: 110 }} /></td>
-                  <td><select className="select" value={l.tax_rate} onChange={e => setLine(i, { tax_rate: Number(e.target.value) })} style={{ width: 70 }}>{RATES.map(r => <option key={r} value={r}>{r}</option>)}</select></td>
+                  <td><select className="select" title="GST % — defaults to 18% when not provided" value={normGstRate(l.tax_rate)} onChange={e => setLine(i, { tax_rate: Number(e.target.value) })} style={{ width: 70 }}>{RATES.map(r => <option key={r} value={r}>{r}{r === DEFAULT_GST_RATE ? ' (default)' : ''}</option>)}</select></td>
                   <td className="mono">{inr(tax)}</td>
                   <td><button className="btn-ghost" style={{ padding: '4px 8px' }} onClick={() => setLines(ls => ls.filter((_, j) => j !== i))}>✕</button></td>
                 </tr>

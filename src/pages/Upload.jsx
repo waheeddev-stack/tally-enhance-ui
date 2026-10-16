@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { uploadBill, api, inr, aiLabel } from '../lib/api.js';
+import { normGstRate } from '../lib/gst.js';
 import { toast } from '../components/Toast.jsx';
 import { burstConfetti } from '../components/Confetti.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -91,12 +92,13 @@ export default function Upload() {
     setSt('saving'); setErr('');
     try {
       const d = data.draft;
+      const lines = (d.lines || []).map(l => ({ ...l, tax_rate: normGstRate(l.tax_rate) }));
       const r = await api('/vouchers', {
         method: 'POST',
         body: JSON.stringify({
           type: 'purchase', date: invDate, party_ledger_id: partyId || null,
           number: invNo, narration: (isPO ? 'PO ' : 'Bill ') + invNo + ' — ' + d.vendor.name,
-          lines: d.lines, bill_id: data.billId, vendor_gstin: gstin,
+          lines, bill_id: data.billId, vendor_gstin: gstin,
           force_draft: isPO,
         }),
       });
@@ -145,7 +147,7 @@ export default function Upload() {
             </label>
             {data.draft.lines.map((l, i) => (
               <div key={i} className="mono" style={{ fontSize: 13, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-                {l.description} · HSN {l.hsn || '—'} · {l.qty}×{inr(l.rate)} = {inr(l.amount)} + {l.tax_rate}% tax
+                {l.description} · HSN {l.hsn || '—'} · {l.qty}×{inr(l.rate)} = {inr(l.amount)} + {normGstRate(l.tax_rate)}% tax
               </div>
             ))}
             <div className="mono"><b>Total {inr(data.draft.totals.grand_total)}</b> <span className="muted">(CGST {inr(data.draft.totals.cgst)} + SGST {inr(data.draft.totals.sgst)})</span></div>
